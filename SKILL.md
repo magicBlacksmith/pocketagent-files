@@ -1,6 +1,6 @@
 ---
-name: pocketagent-files
-description: Create, read, list, update and delete small named text documents in the PocketAgent sandbox. Use when the user asks to manage a test text file. This does not access the iPhone Files app.
+name pocketagent-files
+description Create, read, list, update and delete small named text documents in the PocketAgent sandbox. Use when the user asks to manage a test text file. This does not access the iPhone Files app.
 ---
 # PocketAgent Files v1
 
