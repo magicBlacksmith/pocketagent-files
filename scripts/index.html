@@ -14,7 +14,7 @@
     try {
       const args = JSON.parse(data);
       const action = args.action;
-      if (!['create','read','list','update','delete','diagnose'].includes(action)) throw new Error('Unsupported action');
+      if (!['create','read','list','update','delete','diagnose','export'].includes(action)) throw new Error('Unsupported action');
       let storage;
       try { storage = window.localStorage; const test = PREFIX + '__probe__'; storage.setItem(test, 'ok'); storage.removeItem(test); }
       catch (e) { throw new Error('Webview localStorage unavailable: ' + e.message); }
@@ -29,6 +29,19 @@
         const content=storage.getItem(key);
         if(content===null)throw new Error('File not found in this webview storage');
         return JSON.stringify({result:{name,content,length:content.length}});
+      }
+      if(action==='export'){
+        const content=storage.getItem(key);
+        if(content===null)throw new Error('File not found');
+        const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+        const url=URL.createObjectURL(blob);
+        const anchor=document.createElement('a');
+        anchor.href=url;anchor.download=name;anchor.style.display='none';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),30000);
+        return JSON.stringify({result:{action:'export',name,bytes:blob.size,downloadTriggered:true,warning:'A browser download was requested. iOS Files export is not verified; check the app or share sheet.'}});
       }
       if(action==='delete'){
         if(storage.getItem(key)===null)throw new Error('File not found');
