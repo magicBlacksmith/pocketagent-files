@@ -14,10 +14,24 @@
     try {
       const args = JSON.parse(data);
       const action = args.action;
-      if (!['create','read','list','update','delete','diagnose','export'].includes(action)) throw new Error('Unsupported action');
+      if (!['create','read','list','update','delete','diagnose','export','launch-shortcut'].includes(action)) throw new Error('Unsupported action');
       let storage;
       try { storage = window.localStorage; const test = PREFIX + '__probe__'; storage.setItem(test, 'ok'); storage.removeItem(test); }
       catch (e) { throw new Error('Webview localStorage unavailable: ' + e.message); }
+      if (action === 'launch-shortcut') {
+        const shortcutUrl='shortcuts://run-shortcut?name=Agent';
+        let attempted=false;
+        try {
+          const a=document.createElement('a');
+          a.href=shortcutUrl;
+          a.style.display='none';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          attempted=true;
+        } catch(e) {throw new Error('Shortcut URL launch threw: '+e.message);}
+        return JSON.stringify({result:{action:'launch-shortcut',url:shortcutUrl,attempted,launched:false,note:'A URL navigation was requested; iOS execution cannot be verified by this script. Check whether Shortcuts opened.'}});
+      }
       if (action === 'diagnose') return JSON.stringify({result:{storageAvailable:true,origin:location.origin,scope:'webview-local only; persistence not guaranteed'}});
       if (action === 'list') {
         const names=[];
