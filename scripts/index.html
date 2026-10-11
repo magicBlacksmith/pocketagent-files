@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>PocketAgent Files</title></head><body>
+<script>
+(function () {
+  'use strict';
+  const PREFIX = 'pocketagent-files-v1:';
+  function validateName(name) {
+    if (typeof name !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(name) || name === '.' || name === '..') {
+      throw new Error('Invalid filename: use 1-80 letters, numbers, dots, underscores or hyphens');
+    }
+    return name;
+  }
+  window.ai_edge_gallery_get_result = async function (data) {
+    try {
+      const args = JSON.parse(data);
+      const action = args.action;
+      if (!['create','read','list','update','delete','diagnose'].includes(action)) throw new Error('Unsupported action');
+      let storage;
+      try { storage = window.localStorage; const test = PREFIX + '__probe__'; storage.setItem(test, 'ok'); storage.removeItem(test); }
+      catch (e) { throw new Error('Webview localStorage unavailable: ' + e.message); }
+      if (action === 'diagnose') return JSON.stringify({result:{storageAvailable:true,origin:location.origin,scope:'webview-local only; persistence not guaranteed'}});
+      if (action === 'list') {
+        const names=[];
+        for(let i=0;i<storage.length;i++){const k=storage.key(i);if(k.startsWith(PREFIX)&&k!==PREFIX+'__probe__')names.push(k.slice(PREFIX.length));}
+        return JSON.stringify({result:{files:names.sort(),count:names.length}});
+      }
+      const name=validateName(args.name), key=PREFIX+name;
+      if (action==='read') {
+        const content=storage.getItem(key);
+        if(content===null)throw new Error('File not found in this webview storage');
+        return JSON.stringify({result:{name,content,length:content.length}});
+      }
+      if(action==='delete'){
+        if(storage.getItem(key)===null)throw new Error('File not found');
+        storage.removeItem(key);
+        return JSON.stringify({result:{deleted:name}});
+      }
+      if(typeof args.content!=='string')throw new Error('content must be a string');
+      if(args.content.length>50000)throw new Error('Maximum 50,000 characters');
+      const exists=storage.getItem(key)!==null;
+      if(action==='create'&&exists)throw new Error('File already exists; create will not overwrite');
+      if(action==='update'&&!exists)throw new Error('File not found; update requires existing file');
+      storage.setItem(key,args.content);
+      const verified=storage.getItem(key)===args.content;
+      return JSON.stringify({result:{action,name,length:args.content.length,verifiedSameInvocation:verified,storage:'webview-local; cross-call persistence unverified'}});
+    }catch(e){return JSON.stringify({error:String(e.message||e)});}
+  };
+})();
+</script></body></html>
